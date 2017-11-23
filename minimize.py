@@ -60,5 +60,8 @@ final_time = time.time()
 elapsed_time = (final_time - initial_time) * u.seconds
 print('Completed minimization in %8.3f s' % (elapsed_time / u.seconds))
 
-print('Saving state.')
-simulation.saveState('minimized.xml')
+print('Saving PDB.')
+positions = simulation.context.getState(getPositions=True).getPositions()
+app.PDBFile.writeFile(prmtop.topology, positions, open('minimized.pdb', 'w'))
+
+print('Done')
