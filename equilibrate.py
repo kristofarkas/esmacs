@@ -61,7 +61,7 @@ initial_time = time.time()
 for scaled_k in default_k*10*np.logspace(0, 10, num=11, base=0.5):
     simulation.context.setParameter('k', scaled_k)
     simulation.step(int(total_steps/60))
-    print(simulation.context.getState(getEnergy=True).getPotentialEnergy(), temperature/u.kelvin)
+    print('k:', scaled_k, simulation.context.getState(getEnergy=True).getPotentialEnergy())
 
 
 simulation.context.setParameter('k', 0)
