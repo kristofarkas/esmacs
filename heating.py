@@ -1,3 +1,5 @@
+import sys
+
 import simtk.openmm.app as app
 import simtk.openmm as mm
 import simtk.unit as u
@@ -36,6 +38,11 @@ simulation = app.Simulation(prmtop.topology, system, integrator)
 simulation.reporters.append(app.DCDReporter('heating.dcd', 10))
 
 simulation.loadState('minimized.xml')
+
+app.PDBFile.writeFile(prmtop.topology, simulation.context.getState(getPositions=True).getPositions(), open('minimized.pdb', 'w'))
+
+
+sys.exit(0)
 
 state = simulation.context.getState(getPositions=True)
 positions = state.getPositions()
