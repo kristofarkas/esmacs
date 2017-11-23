@@ -16,7 +16,12 @@ system = prmtop.createSystem(nonbondedMethod=app.PME,
 
 topology = mdtraj.Topology.from_openmm(prmtop.topology)
 
-integrator = mm.LangevinIntegrator(50*u.kelvin, 5/u.picosecond, 0.002*u.picoseconds)
+total_steps = 10_000 # Reducing for testing purposes from 3M
+
+
+integrator = mm.LangevinIntegrator(300*u.kelvin, 5/u.picosecond, 0.002*u.picoseconds)
+barostat = mm.MonteCarloBarostat(1.0*u.bar, 300*u.kelvin)
+
 
 atoms_to_restrain = topology.select('not water and not type H')
 default_k = 4.0*u.kilocalories_per_mole/u.angstroms**2
@@ -28,14 +33,15 @@ harmonic_restraint.addPerParticleParameter("y0")
 harmonic_restraint.addPerParticleParameter("z0")
 
 system.addForce(harmonic_restraint)
+system.addForce(barostat)
 
 # Initialise simulation and positions
 
 simulation = app.Simulation(prmtop.topology, system, integrator)
 
-simulation.reporters.append(app.DCDReporter('heating.dcd', 10))
+simulation.reporters.append(app.DCDReporter('equilibrate.dcd', 10))
 
-simulation.loadState('minimized.xml')
+simulation.loadState('heated.xml')
 
 state = simulation.context.getState(getPositions=True)
 positions = state.getPositions()
@@ -47,23 +53,24 @@ for restraint in range(harmonic_restraint.getNumParticles()):
 
 harmonic_restraint.updateParametersInContext(simulation.context)
 
-# Heating
+# Equilibrate
 
-print('Heating...')
-
+print('Equilibrate...')
 initial_time = time.time()
 
-for temperature in np.linspace(50, 300, 251)*u.kelvin:
-    integrator.setTemperature(temperature)
-    simulation.step(100)
+for scaled_k in default_k*10*np.logspace(0, 10, num=11, base=0.5):
+    simulation.context.setParameter('k', scaled_k)
+    simulation.step(int(total_steps/60))
     print(simulation.context.getState(getEnergy=True).getPotentialEnergy(), temperature/u.kelvin)
 
-simulation.step(500)
+
+simulation.context.setParameter('k', 0)
+simulation.step(int(total_steps*0.15666666))
 
 final_time = time.time()
 elapsed_time = (final_time - initial_time) * u.seconds
-print('Completed heating in %8.3f s' % (elapsed_time / u.seconds))
+print('Completed equilibration in %8.3f s' % (elapsed_time / u.seconds))
 print('Potential energy is %.3f kcal/mol' % (simulation.context.getState(getEnergy=True).getPotentialEnergy() / u.kilocalories_per_mole))
 
 print('Saving state.')
-simulation.saveState('heated.xml')
+simulation.saveState('equilibrated.xml')
