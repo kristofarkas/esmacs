@@ -60,4 +60,5 @@ final_time = time.time()
 elapsed_time = (final_time - initial_time) * u.seconds
 print('Completed minimization in %8.3f s' % (elapsed_time / u.seconds))
 
+print('Saving state.')
 simulation.saveState('minimized.xml')
