@@ -11,6 +11,7 @@ import time
 # System
 
 prmtop = app.AmberPrmtopFile('complex.top')
+pdb = app.PDBFile('minimized.pdb')
 system = prmtop.createSystem(nonbondedMethod=app.PME,
                              constraints=app.HBonds,
                              nonbondedCutoff=12*u.angstroms,
@@ -29,30 +30,23 @@ harmonic_restraint.addPerParticleParameter("x0")
 harmonic_restraint.addPerParticleParameter("y0")
 harmonic_restraint.addPerParticleParameter("z0")
 
+for atomindex in atoms_to_restrain:
+    position = pdb.positions[atomindex]
+    harmonic_restraint.addParticle(int(atomindex), position.value_in_unit_system(u.md_unit_system))
+
 system.addForce(harmonic_restraint)
 
 # Initialise simulation and positions
 
 simulation = app.Simulation(prmtop.topology, system, integrator)
 
-simulation.reporters.append(app.DCDReporter('heating.dcd', 10))
 
-simulation.loadState('minimized.xml')
-
-app.PDBFile.writeFile(prmtop.topology, simulation.context.getState(getPositions=True).getPositions(), open('minimized.pdb', 'w'))
+simulation.context.setPositions(pdb.positions)
+simulation.context.setVelocitiesToTemperature(50*u.kelvin)
 
 
-sys.exit(0)
+simulation.reporters.append(app.DCDReporter('heating.dcd', 50))
 
-state = simulation.context.getState(getPositions=True)
-positions = state.getPositions()
-
-for restraint in range(harmonic_restraint.getNumParticles()):
-    atomindex, _ = harmonic_restraint.getParticleParameters(restraint)
-    position = positions[atomindex]
-    harmonic_restraint.setParticleParameters(restraint ,atomindex, position.value_in_unit_system(u.md_unit_system))
-
-harmonic_restraint.updateParametersInContext(simulation.context)
 
 # Heating
 
