@@ -39,7 +39,7 @@ system.addForce(barostat)
 
 simulation = app.Simulation(prmtop.topology, system, integrator)
 
-simulation.reporters.append(DCDReporter('equilibrate.dcd', 10))
+simulation.reporters.append(app.DCDReporter('equilibrate.dcd', 10))
 
 simulation.loadState('heated.xml')
 

@@ -33,7 +33,7 @@ system.addForce(harmonic_restraint)
 
 simulation = app.Simulation(prmtop.topology, system, integrator)
 
-simulation.reporters.append(DCDReporter('heating.dcd', 10))
+simulation.reporters.append(app.DCDReporter('heating.dcd', 10))
 
 simulation.loadState('minimized.xml')
 
