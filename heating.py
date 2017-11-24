@@ -1,5 +1,3 @@
-import sys
-
 import simtk.openmm.app as app
 import simtk.openmm as mm
 import simtk.unit as u
@@ -45,18 +43,19 @@ simulation.context.setPositions(pdb.positions)
 simulation.context.setVelocitiesToTemperature(50*u.kelvin)
 
 
-simulation.reporters.append(app.DCDReporter('heating.dcd', 50))
+simulation.reporters.append(app.DCDReporter('heating.dcd', 10))
 
 
 # Heating
 
-print('Heating...')
+print('Heating, from inital energy:', 
+     simulation.context.getState(getEnergy=True).getPotentialEnergy())
 
 initial_time = time.time()
 
 for temperature in np.linspace(50, 300, 251)*u.kelvin:
     integrator.setTemperature(temperature)
-    simulation.step(100)
+    simulation.step(1)
     print(simulation.context.getState(getEnergy=True).getPotentialEnergy(), temperature/u.kelvin)
 
 simulation.step(500)
