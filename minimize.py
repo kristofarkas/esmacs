@@ -62,6 +62,6 @@ print('Completed minimization in %8.3f s' % (elapsed_time / u.seconds))
 
 print('Saving PDB.')
 positions = simulation.context.getState(getPositions=True).getPositions()
-app.PDBFile.writeFile(prmtop.topology, positions, open('minimized.pdb', 'w'))
+app.PDBFile.writeFile(prmtop.topology, positions, open('minimized.pdb', 'w'), keepIds=True)
 
 print('Done')
