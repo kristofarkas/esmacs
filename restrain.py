@@ -77,7 +77,7 @@ def restrain_atoms(system, pressure, positions, restrained_atoms, constant):
     restraint_force.addPerParticleParameter('y0')
     restraint_force.addPerParticleParameter('z0')
     for index in restrained_atoms:
-        parameters = positions[index, :].value_in_unit_system(unit.md_unit_system)
+        parameters = positions[index].value_in_unit_system(unit.md_unit_system)
         restraint_force.addParticle(index, parameters)
 
     # Update thermodynamic state.
