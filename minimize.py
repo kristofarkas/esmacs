@@ -5,6 +5,9 @@ import simtk.unit as u
 import numpy as np
 import mdtraj
 import time
+import os
+
+import restrain
 
 # Parameters
 
@@ -19,28 +22,26 @@ sigma = 3 * u.angstrom
 
 # System
 
-prmtop = app.AmberPrmtopFile('complex.top')
-pdb = app.PDBFile('complex.pdb')
+system_path = '/home/kristof/Research/INSPIRE/nilotinib/e255k/build'
+prmtop = app.AmberPrmtopFile(os.path.join(system_path, 'complex.top'))
+inpcrd = app.AmberInpcrdFile(os.path.join(system_path, 'complex.inpcrd'))
+pdb = app.PDBFile(os.path.join(system_path, 'complex.pbd'))
+
 system = prmtop.createSystem(nonbondedMethod=app.PME,
                              constraints=app.HBonds,
                              nonbondedCutoff=12*u.angstroms,
                              switchDistance=10*u.angstroms)
 topology = mdtraj.Topology.from_openmm(prmtop.topology)
 
-atoms_to_restrain = topology.select('not water and not type H')
-K = kT / sigma**2
+K = 4 * u.kilocalorie/(u.angstrom**2*u.mole)  # kT / sigma**2
 
-restraint_force = mm.CustomExternalForce('K*periodicdistance(x, y, x, x0, y0, z0)^2')
-restraint_force.addGlobalParameter('K', K)
-restraint_force.addPerParticleParameter('x0')
-restraint_force.addPerParticleParameter('y0')
-restraint_force.addPerParticleParameter('z0')
+restrain.restrain_atoms_by_dsl(system,
+                               pressure=False,
+                               positions=pdb.positions,
+                               atoms_dsl='not water and not type H',
+                               topology=topology,
+                               constant=K)
 
-for atom_index in atoms_to_restrain:
-    position = pdb.positions[atom_index]
-    restraint_force.addParticle(int(atom_index), position.value_in_unit_system(u.md_unit_system))
-
-system.addForce(restraint_force)
 
 # Initialise simulation and positions
 
@@ -74,4 +75,3 @@ print('Completed minimization in %8.3f s' % (elapsed_time / u.seconds))
 print('Saving PDB.')
 positions = simulation.context.getState(getPositions=True).getPositions()
 app.PDBFile.writeFile(prmtop.topology, positions, open('minimized.pdb', 'w'), keepIds=True)
-

@@ -1,3 +1,5 @@
+.idea/*
+
 # Simulation log file
 *.xml
 *.dcd
