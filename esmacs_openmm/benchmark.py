@@ -29,18 +29,20 @@ def main():
 
     system.setDefaultPeriodicBoxVectors(*prmtop.box_vectors)
 
-    context = openmm.Context(system, integrator)
+    simulation = app.Simulation(prmtop.topology, system, integrator)
 
-    context.setPositions(prmtop.positions)
-    context.setVelocitiesToTemperature(temperature)
+    simulation.context.setPositions(prmtop.positions)
+    simulation.context.setVelocitiesToTemperature(temperature)
+
+    simulation.minimizeEnergy(maxIterations=100)
 
     print('System contains {} atoms.'.format(system.getNumParticles()))
-    print('Using platform "{}".'.format(context.getPlatform().getName()))
-    print('Initial potential energy is {}'.format(context.getState(getEnergy=True).getPotentialEnergy()))
+    print('Using platform "{}".'.format(simulation.context.getPlatform().getName()))
+    print('Initial potential energy is {}'.format(simulation.context.getState(getEnergy=True).getPotentialEnergy()))
 
     # Warm up the integrator to compile kernels, etc
     print('Warming up integrator to trigger kernel compilation...')
-    integrator.step(10)
+    simulation.step(10)
 
     # Time integration
     print('Benchmarking...')
@@ -53,7 +55,7 @@ def main():
     performance = (simulated_time / elapsed_time)
     print('Completed {} steps in {}.'.format(nsteps, elapsed_time))
     print('Performance is {} ns/day'.format(performance / (unit.nanoseconds/unit.day)))
-    print('Final potential energy is {}'.format(context.getState(getEnergy=True).getPotentialEnergy()))
+    print('Final potential energy is {}'.format(simulation.context.getState(getEnergy=True).getPotentialEnergy()))
 
 
 if __name__ == '__main__':
