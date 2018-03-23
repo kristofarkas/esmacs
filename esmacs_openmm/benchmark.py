@@ -19,13 +19,17 @@ def main():
 
     prmtop = AmberParm(prmtop_filename, crd_filename)
 
-    system = prmtop.createSystem(nonbondedMethod=app.PME, nonbondedCutoff=10*unit.angstrom, constraints=app.HBonds)
+    system = prmtop.createSystem(nonbondedMethod=app.PME, nonbondedCutoff=10*unit.angstrom,
+                                 constraints=app.HBonds, switchDistance=8*unit.angstrom)
 
     temperature = 300 * unit.kelvin
+    pressure = 1 * unit.atmosphere
     collision_rate = 5 / unit.picosecond
     timestep = 2 * unit.femtosecond
 
     integrator = openmm.LangevinIntegrator(temperature, collision_rate, timestep)
+    barostat = openmm.MonteCarloBarostat(temperature, pressure)
+    system.addForce(barostat)
 
     system.setDefaultPeriodicBoxVectors(*prmtop.box_vectors)
 
@@ -34,10 +38,12 @@ def main():
     simulation.context.setPositions(prmtop.positions)
     simulation.context.setVelocitiesToTemperature(temperature)
 
-    simulation.minimizeEnergy(maxIterations=100)
-
     print('System contains {} atoms.'.format(system.getNumParticles()))
     print('Using platform "{}".'.format(simulation.context.getPlatform().getName()))
+
+    print('Minimizing energy to avoid clashes.')
+    simulation.minimizeEnergy(maxIterations=100)
+
     print('Initial potential energy is {}'.format(simulation.context.getState(getEnergy=True).getPotentialEnergy()))
 
     # Warm up the integrator to compile kernels, etc
