@@ -7,7 +7,7 @@ import mdtraj
 import time
 import os
 
-import restrain
+from esmacs_openmm import restrain
 
 # Parameters
 
@@ -72,6 +72,6 @@ final_time = time.time()
 elapsed_time = (final_time - initial_time) * u.seconds
 print('Completed minimization in %8.3f s' % (elapsed_time / u.seconds))
 
-print('Saving PDB.')
-positions = simulation.context.getState(getPositions=True).getPositions()
-app.PDBFile.writeFile(prmtop.topology, positions, open('minimized.pdb', 'w'), keepIds=True)
+print('Saving checkpoint.')
+simulation.saveCheckpoint('minimized.chk')
+

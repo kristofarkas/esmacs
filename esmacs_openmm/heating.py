@@ -6,10 +6,12 @@ import numpy as np
 import mdtraj
 import time
 
+from esmacs_openmm import restrain
+
 # System
 
-prmtop = app.AmberPrmtopFile('complex.top')
-pdb = app.PDBFile('minimized.pdb')
+system_path = '/home/kristof/Research/INSPIRE/nilotinib/e255k/build'
+prmtop = app.AmberPrmtopFile(os.path.join(system_path, 'complex.top'))
 system = prmtop.createSystem(nonbondedMethod=app.PME,
                              constraints=app.HBonds,
                              nonbondedCutoff=12*u.angstroms,
@@ -19,29 +21,22 @@ topology = mdtraj.Topology.from_openmm(prmtop.topology)
 
 integrator = mm.LangevinIntegrator(50*u.kelvin, 5/u.picosecond, 0.002*u.picoseconds)
 
-atoms_to_restrain = topology.select('not water and not type H')
-default_k = 4.0*u.kilocalories_per_mole/u.angstroms**2
+K = 4 * u.kilocalorie/(u.angstrom**2*u.mole)  # kT / sigma**2
 
-harmonic_restraint = mm.CustomExternalForce("k*((x-x0)^2+(y-y0)^2+(z-z0)^2)")
-harmonic_restraint.addGlobalParameter('k', default_k)
-harmonic_restraint.addPerParticleParameter("x0")
-harmonic_restraint.addPerParticleParameter("y0")
-harmonic_restraint.addPerParticleParameter("z0")
+restrain.restrain_atoms_by_dsl(system,
+                               pressure=False,
+                               positions=pdb.positions,
+                               atoms_dsl='not water and not type H',
+                               topology=topology,
+                               constant=K)
 
-for atomindex in atoms_to_restrain:
-    position = pdb.positions[atomindex]
-    harmonic_restraint.addParticle(int(atomindex), position.value_in_unit_system(u.md_unit_system))
-
-system.addForce(harmonic_restraint)
 
 # Initialise simulation and positions
 
 simulation = app.Simulation(prmtop.topology, system, integrator)
 
-
 simulation.context.setPositions(pdb.positions)
 simulation.context.setVelocitiesToTemperature(50*u.kelvin)
-
 
 simulation.reporters.append(app.DCDReporter('heating.dcd', 10))
 
