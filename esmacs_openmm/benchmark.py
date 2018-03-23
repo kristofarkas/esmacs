@@ -51,14 +51,16 @@ def main():
     simulation.step(10)
 
     # Time integration
+    print('Time: {}'.format(time.strftime('%H:%M:%S')))
     print('Benchmarking...')
-    nsteps = 5000
+    nsteps = 20000
     initial_time = time.time()
     integrator.step(nsteps)
     final_time = time.time()
     elapsed_time = (final_time - initial_time) * unit.seconds
     simulated_time = nsteps * timestep
     performance = (simulated_time / elapsed_time)
+    print('Time: {}'.format(time.strftime('%H:%M:%S')))
     print('Completed {} steps in {}.'.format(nsteps, elapsed_time))
     print('Performance is {} ns/day'.format(performance / (unit.nanoseconds/unit.day)))
     print('Final potential energy is {}'.format(simulation.context.getState(getEnergy=True).getPotentialEnergy()))
