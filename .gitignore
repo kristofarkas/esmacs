@@ -2,6 +2,13 @@
 *.xml
 *.dcd
 
+# Emacs cached file
+*~
+
+# Ipython notebook
+*.ipynb
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -6,6 +6,17 @@ import numpy as np
 import mdtraj
 import time
 
+# Parameters
+
+Ti = 50 * u.kelvin
+T = 300 * u.kelvin
+P = 1 * u.atmosphere
+
+ts = 2 * u.femtosecond
+
+kT = T * u.BOLTZMANN_CONSTANT_kB * u.AVOGADRO_CONSTANT_NA
+sigma = 3 * u.angstrom
+
 # System
 
 prmtop = app.AmberPrmtopFile('complex.top')
@@ -16,42 +27,42 @@ system = prmtop.createSystem(nonbondedMethod=app.PME,
                              switchDistance=10*u.angstroms)
 topology = mdtraj.Topology.from_openmm(prmtop.topology)
 
-integrator = mm.LangevinIntegrator(50*u.kelvin, 5/u.picosecond, 0.002*u.picoseconds)
-
 atoms_to_restrain = topology.select('not water and not type H')
-default_k = 4.0*u.kilocalories_per_mole/u.angstroms**2
+K = kT / sigma**2
 
-harmonic_restraint = mm.CustomExternalForce("k*((x-x0)^2+(y-y0)^2+(z-z0)^2)")
-harmonic_restraint.addGlobalParameter('k', default_k)
-harmonic_restraint.addPerParticleParameter("x0")
-harmonic_restraint.addPerParticleParameter("y0")
-harmonic_restraint.addPerParticleParameter("z0")
+restraint_force = mm.CustomExternalForce('K*periodicdistance(x, y, x, x0, y0, z0)^2')
+restraint_force.addGlobalParameter('K', K)
+restraint_force.addPerParticleParameter('x0')
+restraint_force.addPerParticleParameter('y0')
+restraint_force.addPerParticleParameter('z0')
 
-for atomindex in atoms_to_restrain:
-    position = pdb.positions[atomindex]
-    harmonic_restraint.addParticle(int(atomindex), position.value_in_unit_system(u.md_unit_system))
+for atom_index in atoms_to_restrain:
+    position = pdb.positions[atom_index]
+    restraint_force.addParticle(int(atom_index), position.value_in_unit_system(u.md_unit_system))
 
-system.addForce(harmonic_restraint)
+system.addForce(restraint_force)
 
 # Initialise simulation and positions
+
+integrator = mm.LangevinIntegrator(Ti, 5/u.picoseconds, ts)
 
 simulation = app.Simulation(prmtop.topology, system, integrator)
 
 simulation.context.setPositions(pdb.positions)
-simulation.context.setVelocitiesToTemperature(50*u.kelvin)
+simulation.context.setVelocitiesToTemperature(Ti)
 
 # Minimise
 
-print('Minimizing, from inital energy:', simulation.context.getState(getEnergy=True).getPotentialEnergy())
+print('Minimizing, from initial energy:', simulation.context.getState(getEnergy=True).getPotentialEnergy())
 
 initial_time = time.time()
 
-for scaled_k in default_k*10*np.logspace(0, 10, num=11, base=0.5):
-    simulation.context.setParameter('k', scaled_k)
+for scaled_k in K*10*np.logspace(0, 10, num=11, base=0.5):
+    simulation.context.setParameter('K', scaled_k)
     simulation.minimizeEnergy(maxIterations=100)
-    print('k:', scaled_k, simulation.context.getState(getEnergy=True).getPotentialEnergy())
+    print('K:', scaled_k, simulation.context.getState(getEnergy=True).getPotentialEnergy())
 
-simulation.context.setParameter('k', 0)
+simulation.context.setParameter('K', 0)
 simulation.minimizeEnergy(maxIterations=1000)
 
 print('Final energy after minimization:', simulation.context.getState(getEnergy=True).getPotentialEnergy())
@@ -64,4 +75,3 @@ print('Saving PDB.')
 positions = simulation.context.getState(getPositions=True).getPositions()
 app.PDBFile.writeFile(prmtop.topology, positions, open('minimized.pdb', 'w'), keepIds=True)
 
-print('Done')
