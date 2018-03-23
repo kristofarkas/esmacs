@@ -25,7 +25,7 @@ sigma = 3 * u.angstrom
 system_path = '/home/kristof/Research/INSPIRE/nilotinib/e255k/build'
 prmtop = app.AmberPrmtopFile(os.path.join(system_path, 'complex.top'))
 inpcrd = app.AmberInpcrdFile(os.path.join(system_path, 'complex.inpcrd'))
-pdb = app.PDBFile(os.path.join(system_path, 'complex.pbd'))
+pdb = app.PDBFile(os.path.join(system_path, 'complex.pdb'))
 
 system = prmtop.createSystem(nonbondedMethod=app.PME,
                              constraints=app.HBonds,
