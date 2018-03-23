@@ -4,6 +4,7 @@ from simtk import openmm, unit
 
 # =============================================================================
 # RESTRAIN ATOMS
+# Original at https://github.com/choderalab/openmmtools/blob/master/openmmtools/forcefactories.py
 # =============================================================================
 
 def restrain_atoms_by_dsl(system, pressure, positions, topology, atoms_dsl, constant):
