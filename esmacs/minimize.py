@@ -7,7 +7,7 @@ import mdtraj
 import time
 import os
 
-from esmacs_openmm import restrain
+from esmacs import restrain
 
 # Parameters
 

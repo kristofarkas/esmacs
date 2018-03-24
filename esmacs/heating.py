@@ -6,7 +6,7 @@ import numpy as np
 import mdtraj
 import time
 
-from esmacs_openmm import restrain
+from esmacs import restrain
 
 # System
 
