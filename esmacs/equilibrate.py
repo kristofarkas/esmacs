@@ -3,74 +3,48 @@ import simtk.openmm as mm
 import simtk.unit as u
 
 import numpy as np
-import mdtraj
-import time
 
-# System
-
-prmtop = app.AmberPrmtopFile('complex.top')
-system = prmtop.createSystem(nonbondedMethod=app.PME,
-                             constraints=app.HBonds,
-                             nonbondedCutoff=12*u.angstroms,
-                             switchDistance=10*u.angstroms)
-
-topology = mdtraj.Topology.from_openmm(prmtop.topology)
-
-total_steps = 10_000 # Reducing for testing purposes from 3M
+from esmacs import restrain
 
 
-integrator = mm.LangevinIntegrator(300*u.kelvin, 5/u.picosecond, 0.002*u.picoseconds)
-barostat = mm.MonteCarloBarostat(1.0*u.bar, 300*u.kelvin)
+class Equilibrate:
 
+    _TIMESTEP = 2 * u.femtosecond
+    _FRICTION_COEFFICIENT = 5 / u.picosecond
 
-atoms_to_restrain = topology.select('not water and not type H')
-default_k = 4.0*u.kilocalories_per_mole/u.angstroms**2
+    def __init__(self, system, positions, topology, num_steps=100):
+        """Simulation to equilibrate the system
 
-harmonic_restraint = mm.CustomExternalForce("k*((x-x0)^2+(y-y0)^2+(z-z0)^2)")
-harmonic_restraint.addGlobalParameter('k', default_k)
-harmonic_restraint.addPerParticleParameter("x0")
-harmonic_restraint.addPerParticleParameter("y0")
-harmonic_restraint.addPerParticleParameter("z0")
+        :param system: simtk.openmm.System
+        :param positions: numpy.ndarray
+        :param topology: simtk.openmm.Topology
+        :param num_steps: int
+        """
+        self.system = system
+        self.positions = positions
+        self.topology = topology
+        self.num_steps = num_steps
 
-system.addForce(harmonic_restraint)
-system.addForce(barostat)
+    def equilibrate(self, pressure, temperature, velocities):
 
-# Initialise simulation and positions
+        K = 4 * u.kilocalorie / (u.angstrom ** 2 * u.mole)
+        self.positions = restrain.restrain_atoms_by_dsl(self.system, pressure=True, positions=self.positions,
+                                                        constant=K, topology=self.topology,
+                                                        atoms_dsl='not water and not type H')
 
-simulation = app.Simulation(prmtop.topology, system, integrator)
+        barostat = mm.MonteCarloBarostat(pressure, temperature)
+        self.system.addForce(barostat)
 
-simulation.reporters.append(app.DCDReporter('equilibrate.dcd', 10))
+        integrator = mm.LangevinIntegrator(temperature, self._FRICTION_COEFFICIENT, self._TIMESTEP)
+        simulation = app.Simulation(self.topology, self.system, integrator)
 
-simulation.loadState('heated.xml')
+        simulation.context.setPositions(self.positions)
+        simulation.context.setVelocities(velocities)
 
-state = simulation.context.getState(getPositions=True)
-positions = state.getPositions()
+        print('Equilibrating with harmonic restraint constants:')
+        for scaled_k in K * 10 * np.append(np.logspace(0, 10, num=11, base=0.5), 0):
+            print(scaled_k)
+            simulation.context.setParameter('K', scaled_k)
+            simulation.step(self.num_steps)
 
-for restraint in range(harmonic_restraint.getNumParticles()):
-    atomindex, _ = harmonic_restraint.getParticleParameters(restraint)
-    position = positions[atomindex]
-    harmonic_restraint.setParticleParameters(restraint ,atomindex, position.value_in_unit_system(u.md_unit_system))
-
-harmonic_restraint.updateParametersInContext(simulation.context)
-
-# Equilibrate
-
-print('Equilibrate...')
-initial_time = time.time()
-
-for scaled_k in default_k*10*np.logspace(0, 10, num=11, base=0.5):
-    simulation.context.setParameter('k', scaled_k)
-    simulation.step(int(total_steps/60))
-    print('k:', scaled_k, simulation.context.getState(getEnergy=True).getPotentialEnergy())
-
-
-simulation.context.setParameter('k', 0)
-simulation.step(int(total_steps*0.15666666))
-
-final_time = time.time()
-elapsed_time = (final_time - initial_time) * u.seconds
-print('Completed equilibration in %8.3f s' % (elapsed_time / u.seconds))
-print('Potential energy is %.3f kcal/mol' % (simulation.context.getState(getEnergy=True).getPotentialEnergy() / u.kilocalories_per_mole))
-
-print('Saving state.')
-simulation.saveState('equilibrated.xml')
+        simulation.step(self.num_steps)

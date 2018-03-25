@@ -40,3 +40,5 @@ class Heater:
 
         integrator.setTemperature(t_f)
         simulation.step(5000)
+
+        return simulation.context
