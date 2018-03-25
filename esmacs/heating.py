@@ -41,4 +41,6 @@ class Heater:
         integrator.setTemperature(t_f)
         simulation.step(5000)
 
+        self.system.removeForce(self.system.getNumForces() - 1)
+
         return simulation.context

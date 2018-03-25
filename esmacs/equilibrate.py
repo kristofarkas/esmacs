@@ -27,13 +27,13 @@ class Equilibrate:
 
     def equilibrate(self, pressure, temperature, velocities):
 
+        barostat = mm.MonteCarloBarostat(pressure, temperature)
+        self.system.addForce(barostat)
+
         K = 4 * u.kilocalorie / (u.angstrom ** 2 * u.mole)
         self.positions = restrain.restrain_atoms_by_dsl(self.system, pressure=True, positions=self.positions,
                                                         constant=K, topology=self.topology,
                                                         atoms_dsl='protein and not type H')
-
-        barostat = mm.MonteCarloBarostat(pressure, temperature)
-        self.system.addForce(barostat)
 
         print('Forces:', self.system.getForces())
 
@@ -50,3 +50,7 @@ class Equilibrate:
             simulation.step(self.num_steps)
 
         simulation.step(self.num_steps)
+
+        self.system.removeForce(self.system.getNumForces() - 1)
+
+        return simulation.context
