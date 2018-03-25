@@ -33,7 +33,8 @@ class Esmacs:
                                      switchDistance=10 * u.angstroms)
 
         thermodynamic_state = mmtools.states.ThermodynamicState(system, temperature=temperature)
-        sampler_state = mmtools.states.SamplerState(positions=inpcrd.positions, box_vectors=inpcrd.boxVectors)
+        sampler_state = mmtools.states.SamplerState(positions=inpcrd.getPositions(asNumpy=True),
+                                                    box_vectors=inpcrd.boxVectors)
 
         return Esmacs(thermodynamic_state, sampler_state, prmtop.topology)
 
