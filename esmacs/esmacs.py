@@ -12,7 +12,7 @@ class Esmacs:
     _FRICTION_COEFFICIENT = 5 / u.picosecond
     _K = 4.0 * u.kilocalorie / (u.angstrom ** 2 * u.mole)
 
-    def __init__(self, thermodynamic_state, sampler_state, topology):
+    def __init__(self, thermodynamic_state, sampler_state: mmtools.states.SamplerState, topology):
 
         self.topology = topology
         self.sampler_state = sampler_state
@@ -41,6 +41,10 @@ class Esmacs:
     def apply_restraint(self):
         restrain_atoms_by_dsl(self.thermodynamic_state, self.sampler_state, self.topology,
                               atoms_dsl="protein and not type H")
+
+        self.thermodynamic_state.apply_to_context(self.context)
+        self.sampler_state.apply_to_context(self.context)
+
         self.context.setParameter('K', self._K)
 
     def remove_restraint(self):
@@ -48,6 +52,8 @@ class Esmacs:
         system = self.thermodynamic_state.system
         system.removeForce(system.getNumForces()-1)
         self.thermodynamic_state.system = system
+
+        self.thermodynamic_state.apply_to_context(self.context)
 
     def minimize_energy(self, max_iterations=1000):
         self.apply_restraint()
