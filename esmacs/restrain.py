@@ -71,7 +71,7 @@ def restrain_atoms(system, pressure, positions, restrained_atoms, constant):
         # Translate system so that the center of geometry is in
         # the origin to reduce the barostat rejections.
         distance_unit = positions.unit
-        centroid = np.mean(positions[restrained_molecule_atoms, :] / distance_unit, axis=0)
+        centroid = np.mean(positions[restrained_molecule_atoms] / distance_unit, axis=0)
         positions -= centroid * distance_unit
 
     # Create a CustomExternalForce to restrain all atoms.
