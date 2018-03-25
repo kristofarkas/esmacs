@@ -8,6 +8,13 @@ import time
 
 from esmacs import restrain
 
+# # Parameters
+# Ti = 50 * u.kelvin
+# T = 300 * u.kelvin
+# P = 1 * u.atmosphere
+#
+# ts = 2 * u.femtosecond
+
 # System
 
 system_path = '/home/kristof/Research/INSPIRE/nilotinib/e255k/build'

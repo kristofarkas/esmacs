@@ -1,3 +1,4 @@
+import mdtraj
 import numpy as np
 from simtk import openmm, unit
 
@@ -8,8 +9,15 @@ from simtk import openmm, unit
 # =============================================================================
 
 def restrain_atoms_by_dsl(system, pressure, positions, topology, atoms_dsl, constant):
+    # Make sure the topology is an MDTraj topology.
+    if isinstance(topology, mdtraj.Topology):
+        mdtraj_topology = topology
+    else:
+        mdtraj_topology = mdtraj.Topology.from_openmm(topology)
+
     # Determine indices of the atoms to restrain.
-    restrained_atoms = topology.select(atoms_dsl).tolist()
+    restrained_atoms = mdtraj_topology.select(atoms_dsl).tolist()
+    print('Restraining atoms:', restrained_atoms)
     return restrain_atoms(system, pressure, positions, restrained_atoms, constant)
 
 
@@ -33,8 +41,6 @@ def restrain_atoms(system, pressure, positions, restrained_atoms, constant):
     positions: list
         In NPT ensemble the atoms have to be moved for the barostat to work.
     """
-    K = constant  # thermodynamic_state.kT / sigma**2  # Spring constant.
-    # system = thermodynamic_state.system  # This is a copy.
 
     # Check that there are atoms to restrain.
     if len(restrained_atoms) == 0:
@@ -73,7 +79,7 @@ def restrain_atoms(system, pressure, positions, restrained_atoms, constant):
     energy_expression = '(K/2)*periodicdistance(x, y, z, x0, y0, z0)^2'  # periodic distance
     restraint_force = openmm.CustomExternalForce(energy_expression)
     # Adding the spring constant as a global parameter allows us to turn it off if desired
-    restraint_force.addGlobalParameter('K', K)
+    restraint_force.addGlobalParameter('K', constant)
     restraint_force.addPerParticleParameter('x0')
     restraint_force.addPerParticleParameter('y0')
     restraint_force.addPerParticleParameter('z0')
