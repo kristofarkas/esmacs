@@ -17,7 +17,6 @@ def restrain_atoms_by_dsl(system, pressure, positions, topology, atoms_dsl, cons
 
     # Determine indices of the atoms to restrain.
     restrained_atoms = mdtraj_topology.select(atoms_dsl).tolist()
-    print('Restraining atoms:', restrained_atoms)
     return restrain_atoms(system, pressure, positions, restrained_atoms, constant)
 
 

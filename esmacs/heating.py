@@ -3,69 +3,40 @@ import simtk.openmm as mm
 import simtk.unit as u
 
 import numpy as np
-import mdtraj
-import time
 
 from esmacs import restrain
 
-# # Parameters
-# Ti = 50 * u.kelvin
-# T = 300 * u.kelvin
-# P = 1 * u.atmosphere
-#
-# ts = 2 * u.femtosecond
 
-# System
+class Heater:
 
-system_path = '/home/kristof/Research/INSPIRE/nilotinib/e255k/build'
-prmtop = app.AmberPrmtopFile(os.path.join(system_path, 'complex.top'))
-system = prmtop.createSystem(nonbondedMethod=app.PME,
-                             constraints=app.HBonds,
-                             nonbondedCutoff=12*u.angstroms,
-                             switchDistance=10*u.angstroms)
+    _TIMESTEP = 2 * u.femtosecond
+    _FRICTION_COEFFICIENT = 5 / u.picosecond
 
-topology = mdtraj.Topology.from_openmm(prmtop.topology)
+    def __init__(self, system, positions, topology, num_steps=100):
 
-integrator = mm.LangevinIntegrator(50*u.kelvin, 5/u.picosecond, 0.002*u.picoseconds)
+        self.system = system
+        self.positions = positions
+        self.topology = topology
+        self.num_steps = num_steps
 
-K = 4 * u.kilocalorie/(u.angstrom**2*u.mole)  # kT / sigma**2
+    def heat(self, t_i, t_f):
 
-restrain.restrain_atoms_by_dsl(system,
-                               pressure=False,
-                               positions=pdb.positions,
-                               atoms_dsl='not water and not type H',
-                               topology=topology,
-                               constant=K)
+        K = 4 * u.kilocalorie / (u.angstrom ** 2 * u.mole)
+        restrain.restrain_atoms_by_dsl(self.system, pressure=False, positions=self.positions,
+                                       constant=K, topology=self.topology,
+                                       atoms_dsl='not water and not type H')
 
+        integrator = mm.LangevinIntegrator(t_i*u.kelvin, self._FRICTION_COEFFICIENT, self._TIMESTEP)
+        simulation = app.Simulation(self.topology, self.system, integrator)
 
-# Initialise simulation and positions
+        simulation.context.setPositions(self.positions)
+        simulation.context.setVelocitiesToTemperature(t_i)
 
-simulation = app.Simulation(prmtop.topology, system, integrator)
+        print('Heating system:')
+        for temperature in np.arange(t_i, t_f)*u.kelvin:
+            print(temperature)
+            integrator.setTemperature(temperature)
+            simulation.step(self.num_steps)
 
-simulation.context.setPositions(pdb.positions)
-simulation.context.setVelocitiesToTemperature(50*u.kelvin)
-
-simulation.reporters.append(app.DCDReporter('heating.dcd', 10))
-
-
-# Heating
-
-print('Heating, from inital energy:', 
-     simulation.context.getState(getEnergy=True).getPotentialEnergy())
-
-initial_time = time.time()
-
-for temperature in np.linspace(50, 300, 251)*u.kelvin:
-    integrator.setTemperature(temperature)
-    simulation.step(1)
-    print(simulation.context.getState(getEnergy=True).getPotentialEnergy(), temperature/u.kelvin)
-
-simulation.step(500)
-
-final_time = time.time()
-elapsed_time = (final_time - initial_time) * u.seconds
-print('Completed heating in %8.3f s' % (elapsed_time / u.seconds))
-print('Potential energy is %.3f kcal/mol' % (simulation.context.getState(getEnergy=True).getPotentialEnergy() / u.kilocalories_per_mole))
-
-print('Saving state.')
-simulation.saveState('heated.xml')
+        integrator.setTemperature(t_f)
+        simulation.step(5000)
