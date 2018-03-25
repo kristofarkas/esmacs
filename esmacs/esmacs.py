@@ -41,9 +41,10 @@ class Esmacs:
         system = self.thermodynamic_state.system
         forces = system.getForces()
 
-        for force, index in enumerate(forces):
+        for index, force in enumerate(forces):
             if force.__class__.__name__ == 'CustomExternalForce':
                 system.removeForce(index)
+                break
 
         self.thermodynamic_state.system = system
 
