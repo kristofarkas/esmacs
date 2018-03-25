@@ -22,7 +22,7 @@ def main():
     context = s2.heat(50, 300)
 
     state = context.getState(getPositions=True,	getVelocities=True)
-    s3 = Equilibrate(system=system, positions=state.getPositions(), topology=prmtop.topology)
+    s3 = Equilibrate(system=system, positions=state.getPositions(asNumpy=True), topology=prmtop.topology)
     s3.equilibrate(1*u.atmosphere, 300*u.kelvin, state.getVelocities())
 
 

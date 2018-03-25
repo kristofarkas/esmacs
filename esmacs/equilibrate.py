@@ -35,6 +35,8 @@ class Equilibrate:
         barostat = mm.MonteCarloBarostat(pressure, temperature)
         self.system.addForce(barostat)
 
+        print('Forces:', self.system.getForces())
+
         integrator = mm.LangevinIntegrator(temperature, self._FRICTION_COEFFICIENT, self._TIMESTEP)
         simulation = app.Simulation(self.topology, self.system, integrator)
 
