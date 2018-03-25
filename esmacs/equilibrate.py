@@ -30,7 +30,7 @@ class Equilibrate:
         K = 4 * u.kilocalorie / (u.angstrom ** 2 * u.mole)
         self.positions = restrain.restrain_atoms_by_dsl(self.system, pressure=True, positions=self.positions,
                                                         constant=K, topology=self.topology,
-                                                        atoms_dsl='not water and not type H')
+                                                        atoms_dsl='protein and not type H')
 
         barostat = mm.MonteCarloBarostat(pressure, temperature)
         self.system.addForce(barostat)

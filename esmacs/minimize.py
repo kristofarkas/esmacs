@@ -20,7 +20,7 @@ class Minimizer:
         K = 4 * u.kilocalorie / (u.angstrom ** 2 * u.mole)
         restrain.restrain_atoms_by_dsl(self.system, pressure=False, positions=self.positions,
                                        constant=K, topology=self.topology,
-                                       atoms_dsl='not water and not type H')
+                                       atoms_dsl='protein and not type H')
 
         integrator = mm.VerletIntegrator(1*u.femtosecond)
         simulation = app.Simulation(self.topology, self.system, integrator)
