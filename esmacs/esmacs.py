@@ -39,7 +39,12 @@ class Esmacs:
     def remove_restraint(self):
         # Need to remove the restraining force because the positions of atoms have changed.
         system = self.thermodynamic_state.system
-        system.removeForce(system.getNumForces()-1)
+        forces = system.getForces()
+
+        for force, index in enumerate(forces):
+            if force.__class__.__name__ == 'CustomExternalForce':
+                system.removeForce(index)
+
         self.thermodynamic_state.system = system
 
     def get_context(self):
