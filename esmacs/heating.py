@@ -33,7 +33,7 @@ class Heater:
         simulation.context.setVelocitiesToTemperature(t_i)
 
         print('Heating system:')
-        for temperature in np.arange(t_i, t_f)*u.kelvin:
+        for temperature in np.arange(t_i, t_f, dtype=np.float)*u.kelvin:
             print(temperature)
             integrator.setTemperature(temperature)
             simulation.step(self.num_steps)

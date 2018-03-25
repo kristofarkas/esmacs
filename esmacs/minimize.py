@@ -33,3 +33,5 @@ class Minimizer:
             print(scaled_k)
             simulation.context.setParameter('K', scaled_k)
             simulation.minimizeEnergy(maxIterations=self.num_steps)
+
+        return simulation.context
