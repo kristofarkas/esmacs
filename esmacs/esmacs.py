@@ -48,16 +48,8 @@ class Esmacs:
         system.removeForce(system.getNumForces()-1)
         self.thermodynamic_state.system = system
 
-    def restrained(self, experiment):
-        def wrapper_for_experiment(*args, **kwargs):
-            self.apply_restraint()
-            experiment(*args, **kwargs)
-            self.remove_restraint()
-
-        return wrapper_for_experiment
-
-    @restrained
     def minimize_energy(self, max_iterations=1000):
+        self.apply_restraint()
         restrain_scaling = 10.0
 
         for _ in range(10):
@@ -69,9 +61,10 @@ class Esmacs:
         mm.LocalEnergyMinimizer.minimize(self.context, maxIterations=max_iterations)
 
         self.sampler_state.update_from_context(self.context)
+        self.remove_restraint()
 
-    @restrained
     def heat_system(self, destination_temperature=300*u.kelvin, num_steps=100, equilibrate=5000):
+        self.apply_restraint()
 
         while self.thermodynamic_state.temperature <= destination_temperature:
             self.thermodynamic_state.temperature += 1 * u.kelvin
@@ -82,11 +75,13 @@ class Esmacs:
 
         self.sampler_state.update_from_context(self.context)
 
-    @restrained
-    def equilibrate_system(self, pressure=1*u.atmosphere, num_steps=100, equilibrate=5000):
+        self.remove_restraint()
 
+    def equilibrate_system(self, pressure=1*u.atmosphere, num_steps=100, equilibrate=5000):
         self.thermodynamic_state.pressure = pressure
         self.thermodynamic_state.apply_to_context(self.context)
+
+        self.apply_restraint()
 
         restrain_scaling = 10.0
 
@@ -99,6 +94,8 @@ class Esmacs:
         self.integrator.step(equilibrate)
 
         self.sampler_state.update_from_context(self.context)
+
+        self.remove_restraint()
 
     def simulate_system(self, num_steps=100):
 
