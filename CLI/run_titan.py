@@ -10,7 +10,7 @@ def main():
 
     for system in systems:
         for replica in range(num_replicas):
-            job.add_task("-n 1 serial $MINICONDA3_PYTHON esmacs.py --system {} --replica {}".format(system, num_replicas))
+            job.add_task("-n 1 serial $MINICONDA3_PYTHON run_esmacs.py --system {} --replica {}".format(system, num_replicas))
 
     job.launch()
 
