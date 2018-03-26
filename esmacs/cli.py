@@ -15,8 +15,8 @@ def run_esmacs():
     root = os.path.join(args.root, args.drug, args.mutation)
     # root = '/lustre/atlas/scratch/farkaspall/chm126/inspire-data/nilotinib/{}/build'
     # root = '/home/kristof/Research/INSPIRE/nilotinib/{}/build'
-    prmtop = os.path.join(root, 'build/complex.top').format(args.system)
-    inpcrd = os.path.join(root, 'build/complex.inpcrd').format(args.system)
+    prmtop = os.path.join(root, 'build/complex.top')
+    inpcrd = os.path.join(root, 'build/complex.inpcrd')
 
     sim = Esmacs.from_amber(prmtop, inpcrd)
     sim.run_protocol(short_run=args.short)
