@@ -9,8 +9,9 @@ from esmacs import Esmacs
 def run_esmacs():
     args = parse_args()
 
-    os.makedirs(os.path.join(args.system, args.replica), exist_ok=True)
-    os.chdir(os.path.join(args.system, args.replica))
+    work_dir = os.path.join(args.drug, args.mutation, args.replica)
+    os.makedirs(work_dir, exist_ok=True)
+    os.chdir(work_dir)
 
     root = os.path.join(args.root, args.drug, args.mutation)
     # root = '/lustre/atlas/scratch/farkaspall/chm126/inspire-data/nilotinib/{}/build'
