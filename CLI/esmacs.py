@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import argparse
 
@@ -17,7 +19,7 @@ def main():
 
     sim = Esmacs.from_amber(prmtop, inpcrd)
     sim.run_protocol()
-    
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Run ESMACS simulation.')
