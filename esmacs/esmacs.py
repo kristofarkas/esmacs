@@ -60,17 +60,22 @@ class Esmacs:
 
         return context, integrator
 
-    def minimize_energy(self, max_iterations=1000):
-        self.apply_restraint()
+    def minimize_energy(self, max_iterations=1000, restrained=True):
+        if restrained:
+            self.apply_restraint()
+
         context, integrator = self.get_context()
 
         for K in self._K * 10 * np.append(np.logspace(0, 10, num=11, base=0.5), 0):
-            context.setParameter('K', K)
+            if restrained:
+                context.setParameter('K', K)
             print('Minimizing for {} with K={}.'.format(max_iterations, K))
             mm.LocalEnergyMinimizer.minimize(context, maxIterations=max_iterations)
 
         self.sampler_state.update_from_context(context)
-        self.remove_restraint()
+
+        if restrained:
+            self.remove_restraint()
 
     def heat_system(self, destination_temperature=300*u.kelvin, num_steps=100, equilibrate=5000):
         self.apply_restraint()
