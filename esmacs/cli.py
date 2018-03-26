@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import argparse
 
 from esmacs import Esmacs
@@ -8,6 +9,8 @@ from esmacs import Esmacs
 
 def run_esmacs():
     args = parse_args()
+
+    print('Running with python at: {}.'.format(sys.executable))
 
     work_dir = os.path.join(args.drug, args.mutation, args.replica)
     os.makedirs(work_dir, exist_ok=True)
