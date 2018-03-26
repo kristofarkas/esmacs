@@ -8,12 +8,12 @@ def main():
     drugs = ['nilotinib']
     num_replicas = 1
     root = '/lustre/atlas/scratch/farkaspall/chm126/inspire-data'
-    task = "-n 1 serial esmacs --short --root {} --mutation {} --drug {} --replica {:02}"
+    task = "-n 1 serial $MINICONDA3_PYTHON $ESMACS/esmacs/cli.py --short --root {} --mutation {} --drug {} --replica {:02}"
 
     job = Wraprun()
 
     # Horrible hack to work around package conflict between py2 of wraprun and out py3.
-    os.environ['PYTHONPATH'] = os.path.join(os.environ['MINICONDA3'], 'lib/python3.6/site-packages') + ':' + os.environ['PYTHONPATH']
+    os.environ['PYTHONPATH'] = os.environ['MINICONDA3_PYTHONPATH']
 
     for mutation in mutations:
         for drug in drugs:
