@@ -23,7 +23,7 @@ def run_esmacs():
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Run ESMACS simulation.')
-    parser.add_argument('--systems', required=True)
+    parser.add_argument('--system', required=True)
     parser.add_argument('--replica', required=True)
     parser.add_argument('--short', default=False, type=bool)
 
