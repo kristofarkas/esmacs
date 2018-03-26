@@ -67,9 +67,11 @@ class Esmacs:
 
         for _ in range(10):
             context.setParameter('K', self._K * restrain_scaling)
+            print('Minimizing for {} with K={}.'.format(max_iterations, self._K * restrain_scaling))
             mm.LocalEnergyMinimizer.minimize(context, maxIterations=max_iterations)
             restrain_scaling *= 0.5
 
+        print('Minimizing for {} unrestrained.')
         context.setParameter('K', self._K * 0)
         mm.LocalEnergyMinimizer.minimize(context, maxIterations=max_iterations)
 
@@ -86,8 +88,11 @@ class Esmacs:
         while self.thermodynamic_state.temperature <= destination_temperature:
             self.thermodynamic_state.temperature += 1 * u.kelvin
             self.thermodynamic_state.apply_to_context(context)
+
+            print('Heating to {}.'.format(self.thermodynamic_state.temperature))
             integrator.step(num_steps)
 
+        print('Further NVT equilibration at {}'.format(self.thermodynamic_state.temperature))
         integrator.step(equilibrate)
 
         self.sampler_state.update_from_context(context)
@@ -106,6 +111,7 @@ class Esmacs:
 
         for _ in range(10):
             context.setParameter('K', self._K * restrain_scaling)
+            print('Equilibrating for {} with K={}.'.format(num_steps, self._K * restrain_scaling))
             integrator.step(num_steps)
             restrain_scaling *= 0.5
 
