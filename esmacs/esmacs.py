@@ -94,7 +94,7 @@ class Esmacs:
 
         self.remove_restraint()
 
-    def equilibrate_system(self, pressure=1*u.atmosphere, num_steps=100, equilibrate=5000):
+    def equilibrate_system(self, pressure=1*u.atmosphere, num_steps=100):
 
         self.thermodynamic_state.pressure = pressure
 
@@ -109,16 +109,32 @@ class Esmacs:
             integrator.step(num_steps)
             restrain_scaling *= 0.5
 
-        context.setParameter('K', self._K * 0)
-        integrator.step(equilibrate)
-
         self.sampler_state.update_from_context(context)
 
         self.remove_restraint()
 
-    def simulate_system(self, num_steps=100):
+    def simulate_system(self, equilibrate=100, production=100, dcd_frequency=10):
 
         context, integrator = self.get_context()
 
-        integrator.step(num_steps)
+        # integrator.step(num_steps)
+
+        dummy_integrator = mm.VerletIntegrator(1*u.femtosecond)
+        simulation = app.Simulation(self.topology, context.getSystem(), dummy_integrator)
+        simulation.context = context
+        simulation.integrator = integrator
+
+        simulation.reporters.append(app.DCDReporter('equilibration.dcd', dcd_frequency))
+        simulation.step(equilibrate)
+
+        simulation.reporters.clear()
+        simulation.reporters.append(app.DCDReporter('production.dcd', dcd_frequency))
+        simulation.step(production)
+
         self.sampler_state.update_from_context(context)
+
+    def run_protocol(self):
+        self.minimize_energy(max_iterations=1000)
+        self.heat_system(destination_temperature=300*u.kelvin, num_steps=100, equilibrate=5_000)
+        self.equilibrate_system(pressure=1*u.atmosphere, num_steps=20_000)
+        self.simulate_system(equilibrate=800_000, production=2_000_000, dcd_frequency=5_000)
