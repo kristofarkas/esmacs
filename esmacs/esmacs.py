@@ -1,3 +1,5 @@
+import numpy as np
+
 import simtk.unit as u
 import simtk.openmm as mm
 import simtk.openmm.app as app
@@ -24,8 +26,8 @@ class Esmacs:
         inpcrd = app.AmberInpcrdFile(inpcrd)
         system = prmtop.createSystem(nonbondedMethod=app.PME,
                                      constraints=app.HBonds,
-                                     nonbondedCutoff=12 * u.angstroms,
-                                     switchDistance=10 * u.angstroms)
+                                     nonbondedCutoff=10*u.angstroms,
+                                     switchDistance=8*u.angstroms)
 
         thermodynamic_state = ThermodynamicState(system, temperature=temperature)
         sampler_state = SamplerState(positions=inpcrd.getPositions(asNumpy=True), box_vectors=inpcrd.boxVectors)
@@ -60,32 +62,23 @@ class Esmacs:
 
     def minimize_energy(self, max_iterations=1000):
         self.apply_restraint()
-
         context, integrator = self.get_context()
 
-        restrain_scaling = 10.0
-
-        for _ in range(10):
-            context.setParameter('K', self._K * restrain_scaling)
-            print('Minimizing for {} with K={}.'.format(max_iterations, self._K * restrain_scaling))
+        for K in self._K * 10 * np.append(np.logspace(0, 10, num=11, base=0.5), 0):
+            context.setParameter('K', K)
+            print('Minimizing for {} with K={}.'.format(max_iterations, K))
             mm.LocalEnergyMinimizer.minimize(context, maxIterations=max_iterations)
-            restrain_scaling *= 0.5
-
-        print('Minimizing for {} unrestrained.')
-        context.setParameter('K', self._K * 0)
-        mm.LocalEnergyMinimizer.minimize(context, maxIterations=max_iterations)
 
         self.sampler_state.update_from_context(context)
         self.remove_restraint()
 
     def heat_system(self, destination_temperature=300*u.kelvin, num_steps=100, equilibrate=5000):
         self.apply_restraint()
-
         context, integrator = self.get_context()
 
         context.setParameter('K', self._K)
 
-        while self.thermodynamic_state.temperature <= destination_temperature:
+        while self.thermodynamic_state.temperature < destination_temperature:
             self.thermodynamic_state.temperature += 1 * u.kelvin
             self.thermodynamic_state.apply_to_context(context)
 
@@ -96,7 +89,6 @@ class Esmacs:
         integrator.step(equilibrate)
 
         self.sampler_state.update_from_context(context)
-
         self.remove_restraint()
 
     def equilibrate_system(self, pressure=1*u.atmosphere, num_steps=100):
@@ -104,19 +96,14 @@ class Esmacs:
         self.thermodynamic_state.pressure = pressure
 
         self.apply_restraint()
-
         context, integrator = self.get_context()
 
-        restrain_scaling = 10.0
-
-        for _ in range(10):
-            context.setParameter('K', self._K * restrain_scaling)
-            print('Equilibrating for {} with K={}.'.format(num_steps, self._K * restrain_scaling))
+        for K in self._K * 10 * np.logspace(0, 10, num=11, base=0.5):
+            context.setParameter('K', K)
+            print('NPT equilibrating for {} with K={}.'.format(num_steps, K))
             integrator.step(num_steps)
-            restrain_scaling *= 0.5
 
         self.sampler_state.update_from_context(context)
-
         self.remove_restraint()
 
     def simulate_system(self, equilibrate=100, production=100, dcd_frequency=10):
