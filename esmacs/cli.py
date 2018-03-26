@@ -32,3 +32,7 @@ def parse_args():
     parser.add_argument('--short', action='store_true')
 
     return parser.parse_args()
+
+
+if __name__ == '__main__':
+    run_esmacs()
