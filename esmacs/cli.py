@@ -25,7 +25,7 @@ def run_esmacs():
 def parse_args():
     parser = argparse.ArgumentParser(description='Run ESMACS simulation.')
     parser.add_argument('--root', required=True)
-    parser.add_argument('--drug', report=True)
+    parser.add_argument('--drug', required=True)
     parser.add_argument('--mutation', required=True)
     parser.add_argument('--replica', required=True)
     parser.add_argument('--short', action='store_true')
