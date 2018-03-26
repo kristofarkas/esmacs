@@ -126,8 +126,13 @@ class Esmacs:
 
         self.sampler_state.update_from_context(context)
 
-    def run_protocol(self):
-        self.minimize_energy(max_iterations=1000)
-        self.heat_system(destination_temperature=300*u.kelvin, num_steps=100, equilibrate=5_000)
-        self.equilibrate_system(pressure=1*u.atmosphere, num_steps=20_000)
-        self.simulate_system(equilibrate=800_000, production=2_000_000, dcd_frequency=5_000)
+    def run_protocol(self, short_run=False):
+        if short_run:
+            steps = [100, 100, 100, 100, 100, 100]
+        else:
+            steps = [1000, 100, 5000, 20000, 800000, 2000000]
+
+        self.minimize_energy(max_iterations=steps[0])
+        self.heat_system(destination_temperature=300*u.kelvin, num_steps=steps[1], equilibrate=steps[2])
+        self.equilibrate_system(pressure=1*u.atmosphere, num_steps=steps[3])
+        self.simulate_system(equilibrate=steps[4], production=steps[5], dcd_frequency=5_000)

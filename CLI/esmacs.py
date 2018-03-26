@@ -18,13 +18,14 @@ def main():
     inpcrd = os.path.join(root, 'complex.inpcrd').format(args.system)
 
     sim = Esmacs.from_amber(prmtop, inpcrd)
-    sim.run_protocol()
+    sim.run_protocol(short_run=args.short)
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Run ESMACS simulation.')
     parser.add_argument('--systems', required=True)
     parser.add_argument('--replica', required=True)
+    parser.add_argument('--short', default=False, type=bool)
 
     return parser.parse_args()
 
