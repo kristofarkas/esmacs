@@ -4,5 +4,6 @@ setup(
     name='esmacs',
     version='0.1',
     packages=find_packages(),
-    install_requires=['numpy']
+    install_requires=['numpy'],
+    scripts=['CLI/esmacs.py']
 )
