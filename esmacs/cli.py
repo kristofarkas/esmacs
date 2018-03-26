@@ -6,7 +6,7 @@ import argparse
 from esmacs import Esmacs
 
 
-def main():
+def run_esmacs():
     args = parse_args()
 
     os.makedirs(os.path.join(args.system, args.replica), exist_ok=True)
@@ -28,7 +28,3 @@ def parse_args():
     parser.add_argument('--short', default=False, type=bool)
 
     return parser.parse_args()
-
-
-if __name__ == '__main__':
-    main()

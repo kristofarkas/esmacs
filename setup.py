@@ -5,5 +5,7 @@ setup(
     version='0.1',
     packages=find_packages(),
     install_requires=['numpy'],
-    scripts=['CLI/run_esmacs.py', 'CLI/run_titan.py']
+    entry_points={
+        'console_scripts': ['esmacs = esmacs.cli:run_esmacs']
+    }
 )
