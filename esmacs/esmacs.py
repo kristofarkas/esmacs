@@ -40,15 +40,10 @@ class Esmacs:
 
     def remove_restraint(self):
         # Need to remove the restraining force because the positions of atoms have changed.
-        system = self.thermodynamic_state.system
-        forces = system.getForces()
-
-        for index, force in enumerate(forces):
+        for index, force in enumerate(self.thermodynamic_state.system.getForces()):
             if force.__class__.__name__ == 'CustomExternalForce':
-                system.removeForce(index)
+                self.thermodynamic_state.system.removeForce(index)
                 break
-
-        self.thermodynamic_state.system = system
 
     def get_context(self):
         integrator = mm.LangevinIntegrator(self.thermodynamic_state.temperature,
@@ -60,22 +55,18 @@ class Esmacs:
 
         return context, integrator
 
-    def minimize_energy(self, max_iterations=1000, restrained=True):
-        if restrained:
-            self.apply_restraint()
-
+    def minimize_energy(self, max_iterations=1000):
+        self.apply_restraint()
         context, integrator = self.get_context()
 
         for K in self._K * 10 * np.append(np.logspace(0, 10, num=11, base=0.5), 0):
-            if restrained:
-                context.setParameter('K', K)
+            context.setParameter('K', K)
             print('Minimizing for {} with K={}.'.format(max_iterations, K))
             mm.LocalEnergyMinimizer.minimize(context, maxIterations=max_iterations)
 
         self.sampler_state.update_from_context(context)
 
-        if restrained:
-            self.remove_restraint()
+        self.remove_restraint()
 
     def heat_system(self, destination_temperature=300*u.kelvin, num_steps=100, equilibrate=5000):
         self.apply_restraint()
@@ -141,3 +132,13 @@ class Esmacs:
         self.heat_system(destination_temperature=300*u.kelvin, num_steps=steps[1], equilibrate=steps[2])
         self.equilibrate_system(pressure=1*u.atmosphere, num_steps=steps[3])
         self.simulate_system(equilibrate=steps[4], production=steps[5], dcd_frequency=5_000)
+
+    def run_raw_protocol(self):
+
+        integrator = mm.LangevinIntegrator(50*u.kelvin, self._FRICTION_COEFFICIENT, self._TIMESTEP)
+
+        simulation = app.Simulation(self.topology, self.system, integrator)
+
+
+
+        pass
