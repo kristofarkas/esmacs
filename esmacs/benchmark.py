@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 
 """
 Benchmark.
@@ -8,6 +8,7 @@ from simtk.openmm import app
 from simtk import unit, openmm
 
 from parmed.amber import AmberParm
+import mdtraj
 
 import time
 
@@ -30,6 +31,23 @@ def main():
     integrator = openmm.LangevinIntegrator(temperature, collision_rate, timestep)
     barostat = openmm.MonteCarloBarostat(temperature, pressure)
     system.addForce(barostat)
+
+    restrain = True
+
+    if restrain:
+        restrained_atoms = mdtraj.Topology.from_openmm(prmtop.topology).select("protein and not type H").tolist()
+        K = 4.0 * unit.kilocalorie / (unit.angstrom ** 2 * unit.mole)
+        energy_expression = '(K/2)*periodicdistance(x, y, z, x0, y0, z0)^2'
+        restraint_force = openmm.CustomExternalForce(energy_expression)
+        restraint_force.addGlobalParameter('K', K)
+        restraint_force.addPerParticleParameter('x0')
+        restraint_force.addPerParticleParameter('y0')
+        restraint_force.addPerParticleParameter('z0')
+        for index in restrained_atoms:
+            parameters = prmtop.positions[index].value_in_unit_system(unit.md_unit_system)
+            restraint_force.addParticle(index, parameters)
+
+        system.addForce(restraint_force)
 
     system.setDefaultPeriodicBoxVectors(*prmtop.box_vectors)
 

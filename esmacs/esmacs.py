@@ -7,6 +7,8 @@ import simtk.openmm.app as app
 from openmmtools.forcefactories import restrain_atoms_by_dsl
 from openmmtools.states import ThermodynamicState, SamplerState
 
+from openmmtools.utils import with_timer
+
 
 class Esmacs:
 
@@ -40,10 +42,15 @@ class Esmacs:
 
     def remove_restraint(self):
         # Need to remove the restraining force because the positions of atoms have changed.
-        for index, force in enumerate(self.thermodynamic_state.system.getForces()):
+        system = self.thermodynamic_state.system
+        forces = system.getForces()
+
+        for index, force in enumerate(forces):
             if force.__class__.__name__ == 'CustomExternalForce':
-                self.thermodynamic_state.system.removeForce(index)
+                system.removeForce(index)
                 break
+
+        self.thermodynamic_state.system = system
 
     def get_context(self):
         integrator = mm.LangevinIntegrator(self.thermodynamic_state.temperature,
@@ -55,7 +62,8 @@ class Esmacs:
 
         return context, integrator
 
-    def minimize_energy(self, max_iterations=1000):
+    @with_timer
+    def minimize_energy(self, max_iterations=100):
         self.apply_restraint()
         context, integrator = self.get_context()
 
@@ -68,7 +76,10 @@ class Esmacs:
 
         self.remove_restraint()
 
-    def heat_system(self, destination_temperature=300*u.kelvin, num_steps=100, equilibrate=5000):
+        del context
+
+    @with_timer
+    def heat_system(self, destination_temperature=300*u.kelvin, num_steps=100, equilibrate=100):
         self.apply_restraint()
         context, integrator = self.get_context()
 
@@ -81,12 +92,15 @@ class Esmacs:
             print('Heating to {}.'.format(self.thermodynamic_state.temperature))
             integrator.step(num_steps)
 
-        print('Further NVT equilibration at {}'.format(self.thermodynamic_state.temperature))
+        print('Further NVT equilibration for {} at {}'.format(equilibrate, self.thermodynamic_state.temperature))
         integrator.step(equilibrate)
 
         self.sampler_state.update_from_context(context)
         self.remove_restraint()
 
+        del context
+
+    @with_timer
     def equilibrate_system(self, pressure=1*u.atmosphere, num_steps=100):
 
         self.thermodynamic_state.pressure = pressure
@@ -96,12 +110,15 @@ class Esmacs:
 
         for K in self._K * 10 * np.logspace(0, 10, num=11, base=0.5):
             context.setParameter('K', K)
-            print('NPT equilibrating for {} with K={}.'.format(num_steps, K))
+            print('NPT equilibration for {} with K={}.'.format(num_steps, K))
             integrator.step(num_steps)
 
         self.sampler_state.update_from_context(context)
         self.remove_restraint()
 
+        del context
+
+    @with_timer
     def simulate_system(self, equilibrate=100, production=100, dcd_frequency=10):
 
         context, integrator = self.get_context()
@@ -122,9 +139,12 @@ class Esmacs:
 
         self.sampler_state.update_from_context(context)
 
+        del context
+
+    @with_timer
     def run_protocol(self, short_run=False):
         if short_run:
-            steps = [100, 100, 100, 100, 100, 100]
+            steps = [10, 100, 100, 100, 100, 100]
         else:
             steps = [1000, 100, 5000, 20000, 800000, 2000000]
 
@@ -138,7 +158,3 @@ class Esmacs:
         integrator = mm.LangevinIntegrator(50*u.kelvin, self._FRICTION_COEFFICIENT, self._TIMESTEP)
 
         simulation = app.Simulation(self.topology, self.system, integrator)
-
-
-
-        pass
